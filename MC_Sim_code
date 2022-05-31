@@ -1,0 +1,77 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from matplotlib import style
+import datetime as dt
+import seaborn as sns
+from scipy.stats import norm
+from binance.client import Client
+client = Client()
+
+
+
+
+# Get Data
+# coins = ('BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'ADAUSDT', 'XRPUSDT', 'LTCUSDT', 'BCHUSDT', 'LINKUSDT', 'MANAUSDT', 'DOGEUSDT', 'VETUSDT')
+
+# function to get data from binance api and convert it to readable data frame
+def get1Hourdata(symbol, lookback):
+    # grab data in data frame
+    frame = pd.DataFrame(client.get_historical_klines(symbol, '1h', lookback + ' days ago UTC'))
+    # get first 5 columns as those are the only ones we need
+    frame = frame.iloc[:, :5]
+    # rename columns
+    frame.columns = ['Date', 'Open', 'High', 'Low', 'Close']
+    # turn values to floats
+    frame[['Open', 'High', 'Low', 'Close']] = frame[['Open', 'High', 'Low', 'Close']].astype(float)
+    # change from unix time to standard time system
+    frame.Date = pd.to_datetime(frame.Date, unit='ms')
+    # make index the first column which is Dates
+    frame.set_index('Date', inplace=True, drop=True)
+    # drop open high and low
+    frame = frame.drop(columns=['Open', 'High', 'Low'], axis=1)
+    return frame
+
+# call function to get BTC data in 1 hour intervals for the previous 20 days
+bin_data = get1Hourdata('BTCUSDT', '1000')
+
+
+
+# logarithmic returns
+log_return = np.log(1 + bin_data.pct_change())
+
+
+# Calculate drift
+u = log_return.mean()
+var = log_return.var()
+drift = u - (0.5*var)
+
+# Calculate variance and Daily Returns
+stdev = log_return.std()
+days = 7 * 24
+trials = 10000
+Z = norm.ppf(np.random.rand(days, trials)) #days, trials
+daily_returns = np.exp(drift.values + stdev.values * Z)
+
+# calculate security for every trial
+price_paths = np.zeros_like(daily_returns)
+price_paths[0] = bin_data.iloc[-1]
+for t in range(1, days):
+    price_paths[t] = price_paths[t-1]*daily_returns[t]
+
+price_paths.shape
+
+# plot data used
+bin_data.plot(figsize=(15,6))
+#plt.show()
+
+# Plot logarithmic returns
+plt.figure(figsize=(10,10))
+sns.distplot(log_return.iloc[1:])
+plt.xlabel("Daily Return")
+plt.ylabel("Frequency")
+#plt.show()
+
+plt.figure(figsize=(15,6))
+plt.plot(pd.DataFrame(price_paths))
+plt.show()
