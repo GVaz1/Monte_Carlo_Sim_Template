@@ -1,2 +1,6 @@
 # Monte_Carlo_Sim_Template
-...
+Simple script that serves as a template for creating a Monte Carlo Simulation for in this case the price of Bitcoin. 
+
+The script gathers data from Binance (a crypto exchange) through the python-binance library api. The api is being implemented in the 'get1Hourdata' function on line 15. The function takes two inputs. The symbol to gather data from and how many days to look back. In line 34 where the function is being called the symbol 'BTCUSDT' is being used but there are many symbols that you can get data from. On line 13 there are some options for other symbols but if you want to see all of the avaliable symbols, you would have to look at the reference manual for the python-binance library. The api returns access information like the high and low prices which is not needed for the simulation so the excess columns are dropped from the data frame. 
+
+To create the actaul simulation, the logarithmic returns are used as logarithmic returns measure the rate of exponential growth. Instead of measuring the percent of price change for each sub-period, it measure the exponent of its natural growth during that time. Then the drift for a Brownian motion is calculated by subtracting the variance of the logarithmic returns multuiplied by 0.5 from the mean of the log returns. After that a normalized percent point function is used with the tirals of amount of simulations to create and  the days or length of each simualtion. Then all the simulations are created in a for loop and plotted on a chart from the python library matplotlib.
